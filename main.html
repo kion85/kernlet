@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Кернлет — полноценный запуск</title>
+<!-- Стиль и подсветка -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css" />
+<style>
+body {
+  margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex; flex-direction: column; height: 100vh;
+  background: linear-gradient(135deg, #2c3e50, #4ca1af);
+  color: #fff;
+}
+header {
+  padding: 10px 20px; display: flex; align-items: center; justify-content: space-between;
+  background: rgba(0,0,0,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+h1 {
+  margin: 0; font-size: 1.8em; letter-spacing: 2px; animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.buttons {
+  display: flex; gap: 8px;
+}
+button {
+  border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;
+  font-weight: bold; transition: all 0.3s;
+  background: #34495e; color: #fff;
+}
+button:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+#main {
+  flex: 1; display: flex; padding: 10px; gap: 10px; overflow: hidden;
+}
+#editorContainer {
+  flex: 3; display: flex; flex-direction: column; background: rgba(255,255,255,0.05);
+  border-radius: 10px; padding: 10px; box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+}
+#editor { flex: 1; height: 100%; }
+#terminal {
+  flex: 1; background: #000; padding: 10px; margin-top: 10px; border-radius: 8px;
+  overflow-y: auto; font-family: monospace; font-size: 0.9em; color: #0f0; white-space: pre-wrap;
+}
+#status { margin-left: 15px; font-weight: bold; font-size: 1.2em; }
+#notification {
+  position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  background: rgba(50,50,50,0.8); color: #fff; font-size: 1em; display: none; z-index: 1000;
+  max-width: 300px; word-wrap: break-word;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Kernlet — Запуск с эмуляцией</h1>
+  <div class="buttons">
+    <button id="btn-upload">Загрузить файл</button>
+    <button id="btn-start">Запуск</button>
+    <button id="btn-save">Сохранить</button>
+    <button id="btn-clear">Очистить</button>
+  </div>
+  <div id="status">Статус: —</div>
+</header>
+<div id="main">
+  <div id="editorContainer">
+    <div id="editor"></div>
+    <div>Терминал:</div>
+    <div id="terminal"></div>
+  </div>
+</div>
+<div id="notification"></div>
+
+<!-- Скрипты -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
+<script>
+const cmContainer = document.getElementById('editor');
+const terminal = document.getElementById('terminal');
+const statusEl = document.getElementById('status');
+const notif = document.getElementById('notification');
+
+const cm = CodeMirror(cmContainer, {
+  mode: 'text/x-csrc',
+  theme: 'monokai',
+  lineNumbers: true,
+  value: `// Введите ваш Kernlet код\nfn main() -> ! {\n    println!("Hello, Kernel!");\n}\n`
+});
+
+// Объявляем список команд для проверки
+const commandsList = [
+  'periph', 'CopyRun', 'println!', 'delay_ms', 'loop', 'if', 'while', 'for', 'let', 'mut', 'serial', 'adc', 'pwm', 
+  'rtc', 'dac', 'can', 'ethernet', 'usb', 'gpio', 'system', 'log', 'sleep_ms', 'format!', 'print', 'log_info', 'log_error',
+  'set_ip_address', 'get_ip_address', 'ping', 'system_reset', 'update_firmware', 'load_configuration', 'factory_reset'
+];
+
+function showNotif(msg, success=false) {
+  notif.innerHTML = msg;
+  notif.style.background = success ? 'rgba(0,150,0,0.8)' : 'rgba(150,0,0,0.8)';
+  notif.style.display='block';
+  setTimeout(()=> { notif.style.display='none'; }, 3000);
+}
+
+function validate() {
+  const code = cm.getValue().trim();
+  terminal.innerHTML=''; // очищаем терминал
+  if (code.length===0) {
+    statusEl.textContent='Ошибка: код пустой!';
+    showNotif('Код пустой!', false);
+    return false;
+  }
+  let hasCommand=false;
+  for (const cmd of commandsList) {
+    if (code.includes(cmd)) {
+      hasCommand=true; break;
+    }
+  }
+  if (!hasCommand) {
+    statusEl.textContent='Ошибка: команда не найдена!';
+    showNotif('Нет команд для выполнения!', false);
+    return false;
+  }
+  statusEl.textContent='Код валиден!';
+  return true;
+}
+
+// Эмуляция запуска
+async function run() {
+  if (!validate()) {
+    showNotif('Исправьте ошибки!', false);
+    return;
+  }
+  const code = cm.getValue();
+  terminal.innerHTML=''; // очищаем
+  let output='';
+  // Простая эмуляция: ищем println! и выводим
+  const lines = code.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('println!')) {
+      const match = trimmed.match(/println!\s*\(\s*"([^"]*)"\s*\)/);
+      if (match) {
+        output+=match[1]+'\n';
+        await new Promise(r => setTimeout(r, 200)); // симуляция задержки
+      }
+    }
+  }
+  if (output.trim() === '') output='Загрузка завершена.';
+  terminal.innerHTML=output;
+  statusEl.textContent='Запущено';
+  showNotif('Выполнено!', true);
+}
+
+// Загрузка файла
+document.getElementById('btn-upload').onclick= ()=> {
+  const input = document.createElement('input');
+  input.type='file';
+  input.accept='.txt,.bin,.hex';
+  input.onchange= ()=> {
+    const file = input.files[0];
+    const reader= new FileReader();
+    reader.onload= ()=> {
+      cm.setValue(reader.result);
+      showNotif('Файл успешно загружен!', true);
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+};
+
+// Сохранение
+document.getElementById('btn-save').onclick= ()=> {
+  const code = cm.getValue();
+  const blob= new Blob([code], {type:'text/plain'});
+  const url= URL.createObjectURL(blob);
+  const a= document.createElement('a');
+  a.href= url;
+  a.download='system_code.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  showNotif('Файл сохранен!', true);
+};
+
+// Очистка
+document.getElementById('btn-clear').onclick= ()=> {
+  cm.setValue('');
+  terminal.innerHTML='';
+  statusEl.textContent='Статус: —';
+};
+
+document.getElementById('btn-start').onclick= run;
+</script>
+</body>
+</html>

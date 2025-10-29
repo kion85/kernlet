@@ -1,0 +1,6 @@
+fn main() {
+    loop {
+        println!("Работаю...");
+        delay_ms(1000);
+    }
+}

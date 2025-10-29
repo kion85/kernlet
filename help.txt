@@ -1,0 +1,146 @@
+Объявление периферийных устройств
+CopyRun
+periph GPIO: gpio::GpioPort = gpio::GpioPort::new('A');
+periph UART: uart::Uart = uart::Uart::new(9600);
+periph SPI: spi::Spi = spi::Spi::new();
+periph I2C: i2c::I2c = i2c::I2c::new();
+periph ADC: adc::Adc = adc::Adc::new();
+periph PWM: pwm::Pwm = pwm::Pwm::new();
+periph RTC: rtc::Rtc = rtc::Rtc::new();
+periph DAC: dac::Dac = dac::Dac::new();
+periph CAN: can::Can = can::Can::new();
+periph Ethernet: ethernet::Ethernet = ethernet::Ethernet::new();
+periph USB: usb::Usb = usb::Usb::new();
+periph DHT22: sensor::Dht22 = sensor::Dht22::new();
+periph EEPROM: eeprom::Eeprom = eeprom::Eeprom::new();
+periph IR: ir::IrReceiver = ir::IrReceiver::new();
+periph WiFi: wifi::WiFi = wifi::WiFi::new();
+periph Bluetooth: bluetooth::Bluetooth = bluetooth::Bluetooth::new();
+periph LightSensor: sensor::LightSensor = sensor::LightSensor::new();
+periph TemperatureSensor: sensor::TemperatureSensor = sensor::TemperatureSensor::new();
+periph HumiditySensor: sensor::HumiditySensor = sensor::HumiditySensor::new();
+Методы устройств и систем
+CopyRun
+led.set_high()
+led.set_low()
+led.toggle()
+serial.write_str("сообщение")
+serial.read_byte()
+adc.read()
+pwm.set_duty(duty)
+rtc.set_time("12:00")
+dac.output(value)
+can_send(id, data)
+can_receive()
+ethernet_send(data)
+ethernet_receive()
+usb_send(data)
+usb_receive()
+gpio_set_high(port, pin)
+gpio_set_low(port, pin)
+gpio_toggle(port, pin)
+pwm_enable(channel)
+pwm_disable(channel)
+spi_init()
+spi_deinit()
+i2c_start()
+i2c_stop()
+uart_init(baud)
+uart_deinit()
+rtc_get_time()
+dac_read()
+can_init()
+ethernet_init()
+usb_init()
+gpio_read(port, pin)
+gpio_write(port, pin, value)
+adc_convert()
+dht22_read()
+Управление и настройка сети
+CopyRun
+set_ip_address(ip)
+get_ip_address()
+set_subnet_mask(mask)
+get_subnet_mask()
+set_gateway(gateway)
+get_gateway()
+ping(ip)
+trace_route(ip)
+get_network_status()
+network_scan()
+Управление устройствами и системные команды
+CopyRun
+system_reset()
+system_shutdown()
+perform_self_test()
+update_firmware(data)
+verify_firmware() -> bool
+save_configuration()
+load_configuration()
+factory_reset()
+enable_debug_mode()
+disable_debug_mode()
+log_error(msg)
+log_info(msg)
+Стандартные операции
+CopyRun
+print("текст")
+log("сообщение")
+delay_ms(ms)
+sleep_ms(ms)
+format!("формат", args...)
+println!("вывод")
+Управление переменными
+CopyRun
+let x = 10;
+let mut y = "hello";
+let z: int = 5;
+let flag: bool = true;
+let message: string = "Привет";
+let buffer: [u8; 16] = [0; 16];
+let temperature: float = 23.5;
+Условные конструкции
+CopyRun
+if cond { ... }
+if cond { ... } else { ... }
+if let Some(x) = option { ... }
+else if cond2 { ... }
+else { ... }
+Циклы
+CopyRun
+loop { ... }
+while cond { ... }
+for i in 0..10 { ... }
+match expr {
+  case 1 => { ... }
+  case 2 => { ... }
+  _ => { ... }
+}
+Операторы
+CopyRun
+x + y
+x - y
+x * y
+x / y
+x % y
+- x
+!cond
+cond1 && cond2
+cond1 || cond2
+a == b
+a != b
+a < b
+a <= b
+a > b
+a >= b
+x & y
+x | y
+x ^ y
+x << 2
+x >> 2
+Строковые операции
+CopyRun
+"строка"
+'символ'
+string + string
+string.concat(other)
