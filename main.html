@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8" />
-<title>Режимы + Обои + Музыка</title>
+<title>KERNLET</title>
 <!-- Подключение CodeMirror -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css" />
@@ -60,6 +60,7 @@ button.active { background: #27ae60; }
 #terminal {
   flex: 1; background: #000; padding: 10px; margin-top: 10px; border-radius: 8px;
   overflow-y: auto; font-family: monospace; font-size: 0.9em; color: #0f0; white-space: pre-wrap;
+  min-height: 100px;
 }
 </style>
 </head>
@@ -67,7 +68,7 @@ button.active { background: #27ae60; }
 <header>
   <div style="display:flex; align-items:center;">
     <h1>KERNLET - расширенное</h1>
-    <div id="modeButtons">
+    <div id="modeButtons" style="margin-left:20px;">
       <button id="btn-code" class="mode active">Код</button>
       <button id="btn-os" class="mode">OS</button>
       <button id="btn-bios" class="mode bios">Биос</button>
@@ -89,6 +90,11 @@ button.active { background: #27ae60; }
   <div id="tab-code" class="tab-content" style="display:flex; flex-direction:column; flex:1;">
     <div id="editorContainer" style="flex:1; display:flex; flex-direction:column;">
       <div id="editor"></div>
+      <div style="margin-top:5px; display:flex; gap:10px;">
+        <button id="btnLoadFile">Загрузить файл</button>
+        <button id="btnSaveFile">Сохранить как</button>
+        <input type="file" id="fileInput" style="display:none;" />
+      </div>
       <div>Терминал:</div>
       <div id="terminal" class="code"></div>
     </div>
@@ -111,6 +117,7 @@ button.active { background: #27ae60; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
 <script>
+// Инициализация редактора
 const cm = CodeMirror(document.getElementById('editor'), {
   mode: 'text/x-csrc',
   theme: 'monokai',
@@ -118,35 +125,30 @@ const cm = CodeMirror(document.getElementById('editor'), {
   value: `// Введите код\nfn main() {\n println!(\"Hello\") }\n`
 });
 const terminal = document.getElementById('terminal');
+const fileInput = document.getElementById('fileInput');
 
-// Переключение вкладок
-const tabs = document.querySelectorAll('#tabs .tab');
-const tabContents = document.querySelectorAll('.tab-content');
+// Обработчик для кнопки "Очистить"
+document.getElementById('btn-clear-all').onclick= ()=> {
+  cm.setValue('');
+  document.getElementById('terminal').innerHTML='>_ ';
+};
 
-tabs.forEach(tab => {
-  tab.onclick = () => {
-    // Удаляем активный класс у всех вкладок
-    tabs.forEach(t => t.classList.remove('active'));
-    // Добавляем активный класс текущей вкладке
-    tab.classList.add('active');
+// Остальной код — без изменений
+const systemCommands = [
+  "ls", "cd", "pwd", "mkdir", "rm", "cp", "mv", "touch", "cat", "less", "head", "tail", "grep", "find", "chmod", "chown", "chgrp", "tar", "zip", "unzip",
+  "adduser", "usermod", "deluser", "passwd", "su", "sudo", "finger", "who", "id", "groups", "useradd", "userdel", "last", "w", "logout",
+  "apt-get", "dpkg", "snap", "systemctl", "service", "ifconfig", "ip", "netstat", "ping", "traceroute", "ssh", "scp", "rsync", "crontab", "at", "nohup", "history",
+  "top", "ps", "kill", "pkill", "htop", "free", "vmstat", "killall", "renice", "nice", "pgrep", "strace", "lsof", "sar", "uptime", "time",
+  "shutdown", "reboot", "halt", "poweroff", "systemctl", "service", "ifconfig", "ip", "netstat", "ping", "traceroute", "ssh", "scp", "rsync",
+  "smem", "sync", "swapoff", "swapon", "sysctl", "ulimit", "pmap", "slabtop", "numactl", "sysrq", "mdb"
+];
 
-    // Скрываем все содержимое
-    tabContents.forEach(content => (content.style.display='none'));
-
-    // Показываем выбранную вкладку
-    const selected = tab.getAttribute('data-tab');
-    document.getElementById(`tab-${selected}`).style.display='flex';
-  };
-});
-
-// Изначально показывается вкладка "Код"
-
-// Обработка режимов
 const modeBtn = {
   code: document.getElementById('btn-code'),
   os: document.getElementById('btn-os'),
   bios: document.getElementById('btn-bios')
 };
+
 let currentMode='code';
 
 function setMode(mode) {
@@ -164,65 +166,144 @@ function setMode(mode) {
     terminal.className='code';
   }
   currentMode=mode;
-  // В ОС и Биос можно писать
-  if (mode==='code') {
-    cm.setOption('readOnly', false);
-  } else {
-    cm.setOption('readOnly', false);
-  }
 }
-document.getElementById('btn-code').onclick= ()=> setMode('code');
-document.getElementById('btn-os').onclick= ()=> setMode('os');
-document.getElementById('btn-bios').onclick= ()=> setMode('bios');
-
+document.getElementById('btn-code').onclick= ()=> { setMode('code'); }
+document.getElementById('btn-os').onclick= ()=> { setMode('os'); }
+document.getElementById('btn-bios').onclick= ()=> { setMode('bios'); }
 setMode('code');
 
-// Кнопка смены темы
 document.getElementById('btn-theme').onclick= ()=> {
-  if (document.body.className==='light') {
-    document.body.className='dark';
-  } else {
-    document.body.className='light';
-  }
+  document.body.className= (document.body.className==='light') ? 'dark' : 'light';
 }
 
-// Кнопка золотистой темы
 document.getElementById('btnGolden').onclick= ()=> {
   document.body.className='golden';
 }
 
-// Запуск
-document.getElementById('btn-run').onclick= ()=> {
-  if (currentMode==='code') {
-    const code=cm.getValue();
-    const regex=/\"([^\"]*)\"/g;
-    let match, out='';
-    while ((match=regex.exec(code))!==null) {
-      out+=match[1]+'\n';
-    }
-    terminal.innerHTML=out;
-  } else if (currentMode==='os') {
-    const code=cm.getValue();
-    if (!code.trim().startsWith('// Operation(')) {
-      alert('Вставьте "// Operation(...)" в начале.');
-      document.body.className='red';
-      terminal.className='bios';
+document.getElementById('btnLoadFile').onclick= ()=> {
+  fileInput.click();
+};
+fileInput.onchange= ()=> {
+  const file=fileInput.files[0];
+  const reader=new FileReader();
+  reader.onload= ()=> {
+    cm.setValue(reader.result);
+  };
+  reader.readAsText(file);
+};
+
+document.getElementById('btnSaveFile').onclick= ()=> {
+  const content=cm.getValue();
+  const blob=new Blob([content], {type:'text/plain'});
+  const url= URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='code.txt'; a.click();
+  URL.revokeObjectURL(url);
+};
+
+// Вкладки
+const tabs = document.querySelectorAll('#tabs .tab');
+tabs.forEach(t => {
+  t.onclick= ()=> {
+    document.querySelectorAll('#tabs .tab').forEach(t2=>t2.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(c=>c.style.display='none');
+    document.getElementById('tab-'+t.dataset.tab).style.display='flex';
+  }
+});
+
+// Для вывода и ввода команд
+function appendToTerminal(text) {
+  if (!terminal.innerText.endsWith('\n') && terminal.innerText.length>0) {
+    terminal.innerHTML += '\n' + text;
+  } else {
+    terminal.innerHTML += text;
+  }
+  terminal.scrollTop=terminal.scrollHeight;
+}
+
+let isTerminalInputActive=false;
+function enableTerminalInput() {
+  terminal.contentEditable=true;
+  terminal.addEventListener('keydown', handleTerminalKey);
+}
+function disableTerminalInput() {
+  terminal.contentEditable=false;
+  terminal.removeEventListener('keydown', handleTerminalKey);
+}
+function handleTerminalKey(e) {
+  if (e.key==='Enter') {
+    e.preventDefault();
+    // Получить последнюю строку
+    const sel=window.getSelection();
+    const node=sel.anchorNode;
+    const parent=node.parentNode;
+    const lines=parent.innerText.split('\n');
+    const lastLine=lines[lines.length-1].trim();
+
+    if (lastLine==='exit' || lastLine==='end') {
+      disableTerminalInput();
       return;
     }
-    terminal.innerHTML='Запущена ОС.';
-    document.body.className='green';
-  } else if (currentMode==='bios') {
-    const code=cm.getValue();
-    if (!code.trim().startsWith('// Operation(')) {
-      alert('Вставьте "// Operation(...)" в начале.');
-      document.body.className='red';
-      terminal.className='bios';
-      return;
+
+    // Обработка команд
+    let response='';
+    if (currentMode==='os' || currentMode==='bios') {
+      if (systemCommands.includes(lastLine)) {
+        switch(lastLine) {
+          case 'ls': response='file1.txt  file2.txt  folder/'; break;
+          case 'pwd': response='/home/user'; break;
+          case 'who': response='user1  user2'; break;
+          case 'id': response='uid=1000(user) gid=1000(user)'; break;
+          case 'ps': response='PID TTY TIME CMD\n1234 pts/0 00:00 bash\n'; break;
+          case 'uptime': response=' 10:23:45 up 2 days,  4:12,  3 users,  load average: 0.00, 0.01, 0.05'; break;
+          case 'date': response='Tue Apr 27 10:23:45 MSK 2024'; break;
+          case 'end': response='Завершение работы...'; break;
+          default: response='Выполняется команда: '+lastLine; break;
+        }
+      } else {
+        response='Команда не распознана.';
+      }
+    } else {
+      response='В режиме "Код" ввод команд недопустим.';
     }
-    terminal.innerHTML='Запущен BIOS.';
-    document.body.className='red';
+    appendToTerminal('\n'+response+'\n');
   }
 }
+
+// Изначально для "Код"
+setMode('code');
+
+// При запуске в "OS" или "Биос" активируем режим ввода команд
+function startSystem(mode) {
+  enableTerminalInput();
+  if (mode==='bios') {
+    appendToTerminal('Запущен BIOS.\n');
+  } else if (mode==='os') {
+    appendToTerminal('Запущена ОС.\n');
+  }
+  // Выводим список команд
+  appendToTerminal('Доступные команды:\n' + systemCommands.join(', ') + '\n');
+}
+
+// Обработчик "Запуск"
+document.getElementById('btn-run').onclick= ()=> {
+  if (currentMode==='code') {
+    if (!cm.getValue().includes('///AllowEdit')) {
+      document.getElementById('terminal').innerText='Запуск в кодовом режиме запрещен без ///AllowEdit.';
+      return;
+    }
+    const regex=/\"([^\"]*)\"/g;
+    let match, out='';
+    while ((match=regex.exec(cm.getValue()))!==null) {
+      out+=match[1]+'\n';
+    }
+    document.getElementById('terminal').innerText=out;
+  } else if (currentMode==='os' || currentMode==='bios') {
+    document.getElementById('terminal').innerText='';
+    startSystem(currentMode);
+  }
+};
 
 // Обработка выбора обоев
 const btnChangeWallpaper = document.getElementById('btnChangeWallpaper');
@@ -231,8 +312,10 @@ const uploadWallpaper = document.getElementById('uploadWallpaper');
 btnChangeWallpaper.onclick= ()=> {
   uploadWallpaper.click();
 };
+
 uploadWallpaper.onchange= ()=> {
   const file=uploadWallpaper.files[0];
+  if (!file) return;
   const reader=new FileReader();
   reader.onload= ()=> {
     document.body.style.backgroundImage=`url(${reader.result})`;
@@ -245,17 +328,11 @@ const uploadMusic = document.getElementById('uploadMusic');
 const musicEl = document.getElementById('music');
 uploadMusic.onchange= ()=> {
   const file=uploadMusic.files[0];
+  if (!file) return;
   const url= URL.createObjectURL(file);
   musicEl.src=url;
   musicEl.play();
 };
-
-// Очистка терминала
-document.getElementById('btn-clear-all').onclick= ()=> {
-  cm.setValue('');
-  document.getElementById('terminal').innerHTML='>_ ';
-};
 </script>
 </body>
 </html>
-
